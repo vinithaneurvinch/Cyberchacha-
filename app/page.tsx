@@ -162,7 +162,7 @@ export default function Home() {
   const [metrics, setMetrics] = useState({
     totalAgents: 3,
     pendingIntrusions: 0,
-    securedOps: 12,
+    securedOps: 0,
     criticalAlerts: 0,
     l1Threats: 0,
     l2Threats: 0,
