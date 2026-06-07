@@ -257,9 +257,19 @@ export default function Home() {
   };
 
   return (
-    <main className={`min-h-screen p-8 lg:p-12 max-w-[1400px] mx-auto font-sans selection:bg-blue-500/30 text-slate-800 dark:text-zinc-100 transition-all duration-700 ${!agents[0].isActive ? 'bg-red-50/50 dark:bg-red-950/10 shadow-[inset_0_0_150px_rgba(239,68,68,0.15)] animate-pulse border-x border-red-500/20' : ''}`}>
+    <div className={`min-h-screen relative overflow-hidden transition-all duration-700 ${!agents[0].isActive ? 'bg-red-50/50 dark:bg-red-950/20 shadow-[inset_0_0_150px_rgba(239,68,68,0.15)] animate-pulse' : ''}`}>
       
-      {/* Logout Confirmation Modal */}
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {/* Cyber Grid */}
+        <div className="absolute inset-0 bg-grid-pattern animate-grid opacity-50"></div>
+        {/* Glowing Orbs */}
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-400 dark:bg-blue-600 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-30 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-400 dark:bg-indigo-600 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-purple-400 dark:bg-purple-600 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <main className="relative z-10 p-8 lg:p-12 max-w-[1400px] mx-auto font-sans selection:bg-blue-500/30 text-slate-800 dark:text-zinc-100">
       {showLogoutModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-6 rounded-xl shadow-xl max-w-sm w-full mx-4 transform transition-all">
@@ -363,10 +373,13 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-end mb-10 pb-6 border-b border-slate-200 dark:border-zinc-800">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">CyberChacha Autonomous SOC</h1>
-          <p className="text-sm font-medium text-slate-500 dark:text-zinc-400 mt-1">Autonomous Web3 MSSP • Automating SOC Tier 1 (Triage) & Tier 2 (Mitigation)</p>
+      <div className="flex justify-between items-end mb-10 pb-6 border-b border-slate-200 dark:border-zinc-800 relative z-10">
+        <div className="flex items-center gap-4">
+          <img src="/logo.png" alt="CyberChacha Logo" className="w-16 h-16 rounded-full border-2 border-slate-200 dark:border-zinc-700 shadow-lg object-cover" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">CyberChacha Autonomous SOC</h1>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 font-medium mt-1">AI-Driven Web3 Threat Mitigation Pipeline</p>
+          </div>
         </div>
         <div className="flex items-center gap-4 text-xs font-medium text-slate-500 dark:text-zinc-400">
           <span className="flex items-center gap-2">
@@ -659,5 +672,6 @@ export default function Home() {
       </div>
 
     </main>
+    </div>
   );
 }
