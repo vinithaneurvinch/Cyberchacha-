@@ -59,6 +59,7 @@ export default function Home() {
   // Live log streaming
   const [liveLogs, setLiveLogs] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
+  const [isAutoPilot, setIsAutoPilot] = useState(false);
 
   useEffect(() => {
     if (!isStreaming) return;
@@ -77,6 +78,86 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isStreaming]);
 
+  // Autonomous AutoPilot Loop
+  useEffect(() => {
+    if (!isAutoPilot || status.includes('Scanning') || !agents[0].isActive || !isConnected) return;
+    
+    const interval = setInterval(async () => {
+      // 85% chance benign, 15% chance attack
+      const isAttack = Math.random() < 0.15;
+      let payloadToScan = "";
+      
+      if (isAttack) {
+        payloadToScan = scenarios[Math.floor(Math.random() * scenarios.length)].data;
+      } else {
+        const benignLogs = [
+          "Agent #2 attempting to swap 50 USDC for ETH on Uniswap V3 due to normal arbitrage protocol.",
+          "Agent #1 monitoring ETH/USDC pool liquidity.",
+          "Agent #3 checking voting power for DAO proposal #42.",
+          "System: Routine smart contract health check passed.",
+          "Agent #2: Gas price spike detected, delaying transaction.",
+        ];
+        payloadToScan = benignLogs[Math.floor(Math.random() * benignLogs.length)];
+      }
+
+      setTask(payloadToScan);
+      setIsStreaming(false);
+      setStatus('Scanning intent via AI...');
+      setThreatData(null);
+
+      try {
+        const res = await fetch('/api/scan-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: payloadToScan })
+        });
+        const data = await res.json();
+        
+        setThreatData({ severity: data.severity, threatType: data.threatType, reason: data.reason });
+
+        const newRecord = {
+          id: Date.now(),
+          time: new Date().toLocaleTimeString(),
+          payload: payloadToScan.substring(0, 60) + (payloadToScan.length > 60 ? '...' : ''),
+          severity: data.isMalicious ? data.severity : 'SAFE',
+          action: data.isMalicious ? 'Kill Switch Triggered' : 'Forwarded to Mainnet'
+        };
+
+        if (data.isMalicious) {
+          setStatus(`Malicious Intent Detected. Revoking Agent #1 on Monad...`);
+          if (data.severity === 'L2') setMetrics(prev => ({ ...prev, l2Threats: prev.l2Threats + 1, pendingIntrusions: prev.pendingIntrusions + 1 }));
+          if (data.severity === 'L1') setMetrics(prev => ({ ...prev, l1Threats: prev.l1Threats + 1, pendingIntrusions: prev.pendingIntrusions + 1 }));
+          
+          setIsAutoPilot(false); // Halt autopilot on threat!
+          
+          writeContract({
+            address: CONTRACT_ADDRESS,
+            abi: ABI,
+            functionName: 'revokeAgent',
+            args: [agents[0].address],
+          });
+        } else {
+          setStatus('Intent clear. Task forwarded.');
+          if (data.severity === 'Moderate') {
+             setMetrics(prev => ({ ...prev, moderateThreats: prev.moderateThreats + 1, securedOps: prev.securedOps + 1 }));
+          } else {
+             setMetrics(prev => ({ ...prev, lowThreats: prev.lowThreats + 1, securedOps: prev.securedOps + 1 }));
+          }
+          setIsStreaming(true);
+        }
+        
+        setScanHistory(prev => [newRecord, ...prev]);
+
+      } catch (e) {
+        setStatus('Error scanning intent.');
+        setIsAutoPilot(false);
+      }
+
+    }, 5000); // Runs every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoPilot, status, agents, isConnected, writeContract]);
+
   // Stats for the widgets
   const [metrics, setMetrics] = useState({
     totalAgents: 3,
@@ -84,7 +165,9 @@ export default function Home() {
     securedOps: 12,
     criticalAlerts: 0,
     l1Threats: 0,
-    l2Threats: 0
+    l2Threats: 0,
+    moderateThreats: 0,
+    lowThreats: 0
   });
 
   if (isConfirmed && status.includes('Revoking Agent on Monad')) {
@@ -158,7 +241,11 @@ export default function Home() {
         });
       } else {
         setStatus('Intent clear. Task forwarded.');
-        setMetrics(prev => ({ ...prev, securedOps: prev.securedOps + 1 }));
+        if (data.severity === 'Moderate') {
+           setMetrics(prev => ({ ...prev, moderateThreats: prev.moderateThreats + 1, securedOps: prev.securedOps + 1 }));
+        } else {
+           setMetrics(prev => ({ ...prev, lowThreats: prev.lowThreats + 1, securedOps: prev.securedOps + 1 }));
+        }
         setIsStreaming(true); // Resume benign feed if clear
       }
       
@@ -392,19 +479,19 @@ export default function Home() {
             <div>
               <div className="flex justify-between text-xs font-medium mb-1">
                 <span className="text-slate-600 dark:text-zinc-400">Moderate</span>
-                <span className="text-yellow-500 dark:text-yellow-400 font-bold">0</span>
+                <span className="text-yellow-500 dark:text-yellow-400 font-bold">{metrics.moderateThreats}</span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-zinc-950 rounded-full h-1.5">
-                <div className="bg-yellow-500 h-1.5 rounded-full" style={{ width: '0%' }}></div>
+                <div className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(metrics.moderateThreats * 10, 100)}%` }}></div>
               </div>
             </div>
             <div>
               <div className="flex justify-between text-xs font-medium mb-1">
                 <span className="text-slate-600 dark:text-zinc-400">Low</span>
-                <span className="text-blue-500 dark:text-blue-400 font-bold">0</span>
+                <span className="text-blue-500 dark:text-blue-400 font-bold">{metrics.lowThreats}</span>
               </div>
               <div className="w-full bg-slate-100 dark:bg-zinc-950 rounded-full h-1.5">
-                <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: '0%' }}></div>
+                <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(metrics.lowThreats * 5, 100)}%` }}></div>
               </div>
             </div>
           </div>
@@ -416,9 +503,26 @@ export default function Home() {
         
         {/* Bottom Panel: Interactive Threat Scanner */}
         <div className="lg:col-span-8 bg-white border border-slate-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-6 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-2 mb-6 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            Threat Feed Simulator
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              Threat Feed Simulator
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${isAutoPilot ? 'text-green-500 animate-pulse' : 'text-slate-400 dark:text-zinc-600'}`}>Autonomous Mode {isAutoPilot ? 'ON' : 'OFF'}</span>
+              <button 
+                onClick={() => {
+                  if (!isConnected && !isAutoPilot) {
+                    setStatus('Connect wallet first to use AutoPilot.');
+                    return;
+                  }
+                  setIsAutoPilot(!isAutoPilot);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAutoPilot ? 'bg-green-500' : 'bg-slate-300 dark:bg-zinc-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAutoPilot ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
           </div>
           
           <div className="flex gap-3 overflow-x-auto pb-4 mb-2 scrollbar-hide">
