@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background-dark: #09090b;
+  --color-foreground-dark: #f4f4f5;
+  --color-background-light: #eef0f4;
+  --color-foreground-light: #0f172a;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: var(--color-background-light);
+    color: var(--color-foreground-light);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  .dark body {
+    background-color: var(--color-background-dark);
+    color: var(--color-foreground-dark);
+  }
+}
