@@ -6,8 +6,9 @@ pragma solidity ^0.8.20;
  * @dev An on-chain Cyber Security Operations Center (SOC) "Kill Switch" for AI Agents.
  */
 contract CyberChachaGuard {
+    address public socAdmin;
+
     struct Agent {
-        address owner;
         bool isActive;
     }
 
@@ -15,53 +16,37 @@ contract CyberChachaGuard {
     mapping(address => Agent) public agents;
 
     // Events for frontend indexing
-    event AgentRegistered(address indexed agentAddress, address indexed owner);
-    event AgentPaused(address indexed agentAddress);
     event AgentRevoked(address indexed agentAddress);
+    event AgentRestored(address indexed agentAddress);
 
-    // Modifier to check if the caller is the owner of the agent
-    modifier onlyAgentOwner(address agentAddress) {
-        require(agents[agentAddress].owner == msg.sender, "CyberChachaGuard: Not the agent owner");
+    // Modifier to check if the caller is the SOC Admin
+    modifier onlyAdmin() {
+        require(msg.sender == socAdmin, "CyberChachaGuard: Not the SOC Admin");
         _;
     }
 
-    /**
-     * @dev Registers a new agent. The agent is active by default.
-     * @param agentAddress The address identifier for the agent.
-     */
-    function registerAgent(address agentAddress) external {
-        require(agents[agentAddress].owner == address(0), "CyberChachaGuard: Agent already registered");
-        
-        agents[agentAddress] = Agent({
-            owner: msg.sender,
-            isActive: true
-        });
-
-        emit AgentRegistered(agentAddress, msg.sender);
-    }
-
-    /**
-     * @dev Pauses an agent temporarily.
-     * @param agentAddress The address identifier for the agent.
-     */
-    function pauseAgent(address agentAddress) external onlyAgentOwner(agentAddress) {
-        require(agents[agentAddress].isActive, "CyberChachaGuard: Agent is already paused or revoked");
-        
-        agents[agentAddress].isActive = false;
-        
-        emit AgentPaused(agentAddress);
+    constructor() {
+        // The deployer is the SOC Admin by default
+        socAdmin = msg.sender;
     }
 
     /**
      * @dev Revokes an agent completely (Kill Switch). 
-     * This acts identically to pause in this MVP, but signifies a permanent security lockdown.
      * @param agentAddress The address identifier for the agent.
      */
-    function revokeAgent(address agentAddress) external onlyAgentOwner(agentAddress) {
-        require(agents[agentAddress].isActive, "CyberChachaGuard: Agent is already revoked");
-        
+    function revokeAgent(address agentAddress) external onlyAdmin {
+        // We do not require it to be explicitly "active" first, 
+        // to allow pre-emptive revokes of unknown addresses during emergencies.
         agents[agentAddress].isActive = false;
-        
         emit AgentRevoked(agentAddress);
+    }
+
+    /**
+     * @dev Restores an agent after an investigation confirms it was a false positive.
+     * @param agentAddress The address identifier for the agent.
+     */
+    function restoreAgent(address agentAddress) external onlyAdmin {
+        agents[agentAddress].isActive = true;
+        emit AgentRestored(agentAddress);
     }
 }

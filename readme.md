@@ -11,6 +11,35 @@ Traditional SOCs rely on tiered human analysts. CyberChacha automates the first 
 - **Tier 1 (Monitoring & Triage)**: CyberChacha constantly monitors incoming logs. It automatically closes false positives (marking them as "Secured Ops") and performs basic investigation and mitigation without human fatigue.
 - **Tier 2 (Deep Investigation & Mitigation)**: For complex or hidden threats (like APTs or data exfiltration), the Sarvam AI performs deep contextual investigations. If a severe threat is confirmed, CyberChacha automatically triggers the `CyberChachaGuard` smart contract to revoke the agent's permissions, handling the mitigation instantly.
 
+### Architecture Flow
+
+```mermaid
+graph TD
+    subgraph Web3 Environment
+        A[AI Trading Agent] -->|Submits Intent/Logs| B(CyberChacha Interceptor)
+        F[(Monad Blockchain)]
+    end
+
+    subgraph CyberChacha SOC
+        B -->|API Request| C{Sarvam AI Engine}
+        C -->|Safe| D[Forward to Mainnet]
+        C -->|Malicious / Hallucination| E[Trigger Monad Kill Switch]
+    end
+
+    E -.->|Call revokeAgent()| F
+    D -.->|Execute Trade| F
+    F -->|Agent Locked!| A
+    
+    classDef safe fill:#10b981,stroke:#047857,color:white;
+    classDef danger fill:#ef4444,stroke:#b91c1c,color:white;
+    classDef core fill:#3b82f6,stroke:#1d4ed8,color:white;
+    
+    class D safe;
+    class E danger;
+    class C core;
+    class B core;
+```
+
 ## ✨ Key Features
 
 - **Dynamic SOC Dashboard**: A stunning, responsive UI built with Next.js and Tailwind CSS v4, featuring real-time system health widgets and interactive threat monitoring.

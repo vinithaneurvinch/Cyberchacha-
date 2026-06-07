@@ -8,11 +8,18 @@ import { scenarios } from './data/scenarios';
 import { useTheme } from 'next-themes';
 import { Moon, Sun, FileText, Activity } from 'lucide-react';
 
-const CONTRACT_ADDRESS = '0xd3d8a5483eC9F96B0e9a91BEb4b313524ae4AA1e';
+const CONTRACT_ADDRESS = '0xD204d2c89b47F2f72e5E59fa2E65551706b875Aa';
 const ABI = [
   {
     "inputs": [{ "internalType": "address", "name": "agentAddress", "type": "address" }],
     "name": "revokeAgent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "agentAddress", "type": "address" }],
+    "name": "restoreAgent",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -86,6 +93,23 @@ export default function Home() {
     setMetrics(prev => ({ ...prev, criticalAlerts: prev.criticalAlerts + 1 }));
   }
 
+  if (isConfirmed && status.includes('Restoring Agent on Monad')) {
+    setAgents(agents.map(a => a.id === 1 ? { ...a, isActive: true } : a));
+    setStatus('Agent Re-Activated. Restored to normal operations.');
+  }
+
+  const handleRestore = () => {
+    if (!isConnected) return;
+    setStatus('Restoring Agent on Monad...');
+    writeContract({
+      address: CONTRACT_ADDRESS,
+      abi: ABI,
+      functionName: 'restoreAgent',
+      args: [agents[0].address],
+    });
+    setReportModal(false);
+  };
+
   const handleScenario = (scenarioData: string) => {
     setIsStreaming(false); // Stop the benign feed when user injects an attack
     setTask(scenarioData);
@@ -146,7 +170,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8 lg:p-12 max-w-[1400px] mx-auto font-sans selection:bg-blue-500/30 text-slate-800 dark:text-zinc-100 transition-colors duration-300">
+    <main className={`min-h-screen p-8 lg:p-12 max-w-[1400px] mx-auto font-sans selection:bg-blue-500/30 text-slate-800 dark:text-zinc-100 transition-all duration-700 ${!agents[0].isActive ? 'bg-red-50/50 dark:bg-red-950/10 shadow-[inset_0_0_150px_rgba(239,68,68,0.15)] animate-pulse border-x border-red-500/20' : ''}`}>
       
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
@@ -232,7 +256,14 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-200 dark:border-zinc-800 flex justify-end">
+            <div className="mt-8 pt-4 border-t border-slate-200 dark:border-zinc-800 flex justify-between items-center">
+              <button 
+                onClick={handleRestore}
+                className="px-4 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 dark:text-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-lg transition-colors border border-slate-200 dark:border-zinc-700 shadow-sm flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                Re-Activate Agent
+              </button>
               <button 
                 onClick={() => setReportModal(false)}
                 className="px-6 py-2 text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 dark:bg-zinc-100 dark:hover:bg-white dark:text-zinc-900 rounded-lg transition-colors shadow-sm"
